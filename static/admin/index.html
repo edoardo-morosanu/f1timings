@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F1 24 Timing Admin Panel</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .red-bull {
+            color: #1e3d8f;
+        }
+
+        .mclaren {
+            color: #FF8000;
+        }
+
+        .remove-btn {
+            background: none;
+            border: none;
+            color: #dc2626;
+            cursor: pointer;
+            font-weight: normal;
+            padding: 0;
+        }
+
+        .remove-btn:hover {
+            color: #b91c1c;
+            background: none;
+        }
+
+        .fastest-lap {
+            background-color: #fef3c7;
+            border: 1px solid #fde68a;
+            border-radius: 4px;
+            padding: 15px;
+        }
+
+        .preview {
+            background-color: #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .no-lap {
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .mono {
+            font-family: 'Courier New', monospace;
+        }
+
+        tr.fastest td {
+            background-color: #fef3c7;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>F1 24 Timing Admin Panel</h1>
+
+    <div class="card">
+        <h2>Add New Lap Time</h2>
+        <form id="lap-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="driver-name">Driver Name</label>
+                    <input type="text" id="driver-name" placeholder="Enter driver name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="lap-time">Lap Time (mm.ss.sss or ss.sss)</label>
+                    <input type="text" id="lap-time" placeholder="e.g. 1.23.456 or 45.678" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="team">Team</label>
+                    <select id="team" required>
+                        <option value="RedBull">Red Bull</option>
+                        <option value="McLaren">McLaren</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit">Add Lap Time</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Fastest Lap</h2>
+        <div id="fastestLapContainer">
+            <p class="no-lap">No lap times recorded yet</p>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2 class="red-bull">Red Bull Times</h2>
+            <div id="redbullTable">
+                <p class="no-lap">No lap times yet</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="mclaren">McLaren Times</h2>
+            <div id="mclarenTable">
+                <p class="no-lap">No lap times yet</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // DOM elements
+    const lapForm = document.getElementById('lap-form');
+    const driverNameInput = document.getElementById('driver-name');
+    const lapTimeInput = document.getElementById('lap-time');
+    const teamSelect = document.getElementById('team');
+    const fastestLapContainer = document.getElementById('fastestLapContainer');
+    const redbullTable = document.getElementById('redbullTable');
+    const mclarenTable = document.getElementById('mclarenTable');
+
+    // State to keep track of drivers and their times
+    let drivers = {};
+    let fastestLap = { driver: '', time: '', team: '' };
+
+    // Form submission handler
+    lapForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const driverName = driverNameInput.value.trim();
+        const team = teamSelect.value;
+        const lapTime = lapTimeInput.value.trim();
+
+        // Send data to server
+        try {
+            const response = await fetch('/api/lap', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    driver_name: driverName,
+                    team: team,
+                    time: lapTime
+                })
+            });
+
+            if (response.ok) {
+                lapTimeInput.value = '';
+                await loadTimingData();
+            } else {
+                console.error('Failed to submit lap time');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    });
+
+    // Load timing data from API
+    async function loadTimingData() {
+        try {
+            const response = await fetch('/api/drivers');
+            drivers = await response.json();
+
+            updateFastestLapDisplay();
+            updateTeamTables();
+
+        } catch (error) {
+            console.error('Error loading timing data:', error);
+        }
+    }
+
+    // Format time consistently
+    // Format time consistently
+    function formatTime(timeString) {
+        // If time already contains a colon, convert format
+        if (timeString.includes(':')) {
+            const [minutes, seconds] = timeString.split(':');
+            return `${minutes}.${seconds}`;
+        }
+        // If time already has the correct format with dot
+        else if (timeString.includes('.')) {
+            // Check if it's already in m.ss.sss format
+            const parts = timeString.split('.');
+            if (parts.length === 3) {
+                // Already in correct format m.ss.sss
+                return timeString;
+            } else if (parts.length === 2) {
+                // Likely ss.sss format, add leading zero
+                return `0.${timeString}`;
+            }
+        }
+        // Assuming it's just a raw seconds value
+        else {
+            const secondsValue = parseFloat(timeString);
+            // Convert seconds to minutes.seconds format
+            const minutes = Math.floor(secondsValue / 60);
+            const seconds = (secondsValue % 60).toFixed(3);
+
+            if (minutes > 0) {
+                // Add leading zero to seconds if needed
+                const secondsFormatted = seconds < 10 ? `0${seconds}` : seconds;
+                return `${minutes}.${secondsFormatted}`;
+            } else {
+                // For times under a minute
+                return `0.${seconds < 10 ? `0${seconds}` : seconds}`;
+            }
+        }
+    }
+
+    // Update the fastest lap display
+    function updateFastestLapDisplay() {
+        // Find fastest lap from all drivers
+        let fastestTime = "99:99.999";
+        let fastestDriver = "";
+        let fastestTeam = "";
+
+        for (const [name, driver] of Object.entries(drivers)) {
+            for (const lap of driver.lap_times) {
+                if (lap.is_fastest) {
+                    fastestTime = lap.time;
+                    fastestDriver = driver.name;
+                    fastestTeam = driver.team;
+                }
+            }
+        }
+
+        // Update UI
+        if (fastestDriver) {
+            fastestLapContainer.innerHTML = `
+                <div class="fastest-lap">
+                    <p><strong>${fastestDriver}</strong> (${fastestTeam})</p>
+                    <p class="mono" style="font-size: 18px;">${formatTime(fastestTime)}</p>
+                </div>
+            `;
+        } else {
+            fastestLapContainer.innerHTML = `<p class="no-lap">No lap times recorded yet</p>`;
+        }
+    }
+
+    // Update team tables
+    function updateTeamTables() {
+        // Group drivers by team
+        const redbullDrivers = {};
+        const mclarenDrivers = {};
+
+        for (const [name, driver] of Object.entries(drivers)) {
+            if (driver.team === 'RedBull') {
+                redbullDrivers[name] = driver;
+            } else if (driver.team === 'McLaren') {
+                mclarenDrivers[name] = driver;
+            }
+        }
+
+        // Update Red Bull table
+        updateTeamTable(redbullTable, redbullDrivers, 'RedBull');
+
+        // Update McLaren table
+        updateTeamTable(mclarenTable, mclarenDrivers, 'McLaren');
+    }
+
+    // Helper function to update team tables
+    function updateTeamTable(tableElement, teamDrivers, teamName) {
+        if (Object.keys(teamDrivers).length === 0) {
+            tableElement.innerHTML = `<p class="no-lap">No lap times yet</p>`;
+            return;
+        }
+
+        let tableHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Driver</th>
+                        <th>Time</th>
+                        <th>Fastest</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        for (const [name, driver] of Object.entries(teamDrivers)) {
+            for (const lap of driver.lap_times) {
+                tableHTML += `
+                    <tr class="${lap.is_fastest ? 'fastest' : ''}">
+                        <td>${driver.name}</td>
+                        <td class="mono">${formatTime(lap.time)}</td>
+                        <td>${lap.is_fastest ? 'Yes' : ''}</td>
+                    </tr>
+                `;
+            }
+        }
+
+        tableHTML += `</tbody></table>`;
+        tableElement.innerHTML = tableHTML;
+    }
+
+    // Load initial data
+    loadTimingData();
+
+    // Refresh data every few seconds
+    setInterval(loadTimingData, 2000);
+</script>
+</body>
+</html>

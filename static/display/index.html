@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F1 24 Lap Times Display</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: black;
+            color: white;
+            padding: 30px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+
+        .fastest-lap-container {
+            background-color: #854d0e;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 12px rgba(255, 213, 0, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 8px rgba(255, 213, 0, 0.4); }
+            50% { box-shadow: 0 0 16px rgba(255, 213, 0, 0.6); }
+            100% { box-shadow: 0 0 8px rgba(255, 213, 0, 0.4); }
+        }
+
+        .fastest-lap-label {
+            color: #fcd34d;
+            text-transform: uppercase;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .fastest-lap-driver {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .fastest-lap-time {
+            font-family: 'Courier New', monospace;
+            color: #fcd34d;
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .teams-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .team-container {
+            padding: 20px;
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .team-header {
+            font-size: 24px;
+            font-weight: bold;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            border-bottom-width: 2px;
+            border-bottom-style: solid;
+            display: flex;
+            align-items: center;
+        }
+
+        .team-header img {
+            height: 30px;
+            margin-right: 10px;
+        }
+
+        .redbull .team-header {
+            color: #0600ef;
+            border-bottom-color: #0600ef;
+        }
+
+        .mclaren .team-header {
+            color: #ff8700;
+            border-bottom-color: #ff8700;
+        }
+
+        .lap-item {
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .lap-item.highlight {
+            background-color: #854d0e;
+            transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(255, 213, 0, 0.3);
+        }
+
+        .driver-name {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .lap-time {
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            letter-spacing: 1px;
+        }
+
+        .no-laps {
+            color: #9ca3af;
+            font-style: italic;
+            padding: 20px;
+            text-align: center;
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 14px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>F1 24 LAP TIMES</h1>
+
+        <div class="fastest-lap-container" id="fastestLap" style="display: none;">
+            <div class="fastest-lap-label">Fastest Lap</div>
+            <div class="fastest-lap-driver" id="fastestDriver"></div>
+            <div class="fastest-lap-time" id="fastestTime"></div>
+        </div>
+    </header>
+
+    <div class="teams-grid">
+        <div class="team-container redbull">
+            <div class="team-header">
+                <div>RED BULL</div>
+            </div>
+            <div id="redbullLaps">
+                <div class="no-laps">No lap times recorded</div>
+            </div>
+        </div>
+
+        <div class="team-container mclaren">
+            <div class="team-header">
+                <div>MCLAREN</div>
+            </div>
+            <div id="mclarenLaps">
+                <div class="no-laps">No lap times recorded</div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2025 F1 24 Timing System</p>
+    </footer>
+</div>
+
+<script>
+        async function loadDisplayData() {
+        try {
+        const response = await fetch('/api/drivers');
+        const drivers = await response.json();
+
+        // Group drivers by team
+        const redbullDrivers = {};
+        const mclarenDrivers = {};
+        let fastestLap = null;
+        let fastestDriver = null;
+        let fastestTeam = null;
+
+        for (const [name, driver] of Object.entries(drivers)) {
+        if (driver.team === 'RedBull') {
+        redbullDrivers[name] = driver;
+    } else if (driver.team === 'McLaren') {
+        mclarenDrivers[name] = driver;
+    }
+
+        // Find fastest lap
+        driver.lap_times.forEach(lap => {
+        if (lap.is_fastest) {
+        fastestLap = formatTime(lap.time);
+        fastestDriver = driver.name;
+        fastestTeam = driver.team.toLowerCase();
+    }
+    });
+    }
+
+        // Update fastest lap display
+        const fastestLapContainer = document.getElementById('fastestLap');
+        const fastestDriverElement = document.getElementById('fastestDriver');
+        const fastestTimeElement = document.getElementById('fastestTime');
+
+        if (fastestLap && fastestDriver) {
+        fastestLapContainer.style.display = 'block';
+        fastestDriverElement.textContent = fastestDriver;
+        fastestTimeElement.textContent = fastestLap;
+    } else {
+        fastestLapContainer.style.display = 'none';
+    }
+
+        // Update Red Bull laps
+        updateTeamDisplay('redbullLaps', redbullDrivers, fastestDriver, 'redbull');
+
+        // Update McLaren laps
+        updateTeamDisplay('mclarenLaps', mclarenDrivers, fastestDriver, 'mclaren');
+
+    } catch (error) {
+        console.error('Error loading display data:', error);
+    }
+    }
+
+        function updateTeamDisplay(elementId, teamDrivers, fastestDriver, teamKey) {
+        const container = document.getElementById(elementId);
+
+        if (Object.keys(teamDrivers).length === 0) {
+        container.innerHTML = '<div class="no-laps">No lap times recorded</div>';
+        return;
+    }
+
+        let html = '';
+
+        for (const [name, driver] of Object.entries(teamDrivers)) {
+        driver.lap_times.forEach(lap => {
+        const isHighlight = lap.is_fastest;
+        html += `
+                    <div class="lap-item ${isHighlight ? 'highlight' : ''}">
+                        <div class="driver-name">${driver.name}</div>
+                        <div class="lap-time">${formatTime(lap.time)}</div>
+                    </div>
+                `;
+    });
+    }
+
+        container.innerHTML = html;
+    }
+
+        // Format time to ensure it displays correctly (handling seconds-only times and using dots)
+        function formatTime(timeString) {
+            // If time already contains a colon, convert format
+            if (timeString.includes(':')) {
+                const [minutes, seconds] = timeString.split(':');
+                return `${minutes}.${seconds}`;
+            }
+            // If time already has the correct format with dot
+            else if (timeString.includes('.')) {
+                // Check if it's already in m.ss.sss format
+                const parts = timeString.split('.');
+                if (parts.length === 3) {
+                    // Already in correct format m.ss.sss
+                    return timeString;
+                } else if (parts.length === 2) {
+                    // Likely ss.sss format, add leading zero
+                    return `0.${timeString}`;
+                }
+            }
+            // Assuming it's just a raw seconds value
+            else {
+                const secondsValue = parseFloat(timeString);
+                // Convert seconds to minutes.seconds format
+                const minutes = Math.floor(secondsValue / 60);
+                const seconds = (secondsValue % 60).toFixed(3);
+
+                if (minutes > 0) {
+                    // Add leading zero to seconds if needed
+                    const secondsFormatted = seconds < 10 ? `0${seconds}` : seconds;
+                    return `${minutes}.${secondsFormatted}`;
+                } else {
+                    // For times under a minute
+                    return `0.${seconds < 10 ? `0${seconds}` : seconds}`;
+                }
+            }
+        }
+
+        // Load initial data
+        loadDisplayData();
+
+        // Refresh data every few seconds
+        setInterval(loadDisplayData, 2000);
+</script>
+</body>
+</html>
