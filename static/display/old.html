@@ -6,9 +6,9 @@
     <title>F1 24 Lap Times Display</title>
     <style>
       body {
-        font-family: "Titillium Web", "Arial", sans-serif;
-        background-color: #15151e;
-        color: #ffffff;
+        font-family: "Arial", sans-serif;
+        background-color: black;
+        color: white;
         padding: 30px;
         margin: 0;
       }
@@ -45,34 +45,33 @@
       }
 
       .track-title {
-        color: #e10600; /* Keep F1 red for track name */
+        color: #fcd34d;
       }
 
       .fastest-lap-container {
-        background-color: #1f1f2c;
+        background-color: #623e8b;
         border-radius: 8px;
         padding: 20px;
         text-align: center;
         margin-bottom: 40px;
-        border-left: 5px solid #e10600; /* Purple border for fastest lap */
-        box-shadow: 0 4px 12px rgba(113, 0, 225, 0.2);
+        box-shadow: 0 4px 12px rgba(255, 213, 0, 0.2);
         animation: pulse 2s infinite;
       }
 
       @keyframes pulse {
         0% {
-          box-shadow: 0 0 8px rgba(225, 6, 0, 0.4);
+          box-shadow: 0 0 8px rgba(255, 213, 0, 0.4);
         }
         50% {
-          box-shadow: 0 0 16px rgba(225, 6, 0, 0.6);
+          box-shadow: 0 0 16px rgba(255, 213, 0, 0.6);
         }
         100% {
-          box-shadow: 0 0 8px rgba(225, 6, 0, 0.4);
+          box-shadow: 0 0 8px rgba(255, 213, 0, 0.4);
         }
       }
 
       .fastest-lap-label {
-        color: #7100e1; /* Purple for fastest lap label */
+        color: #fcd34d;
         text-transform: uppercase;
         font-size: 16px;
         font-weight: 600;
@@ -87,8 +86,8 @@
       }
 
       .fastest-lap-time {
-        font-family: "Roboto Mono", "Courier New", monospace;
-        color: #7100e1; /* Purple for fastest lap time */
+        font-family: "Courier New", monospace;
+        color: #fcd34d;
         font-size: 32px;
         font-weight: 700;
       }
@@ -102,8 +101,7 @@
       .team-container {
         padding: 20px;
         border-radius: 8px;
-        background-color: #1f1f2c;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        background-color: rgba(255, 255, 255, 0.05);
       }
 
       .team-header {
@@ -137,7 +135,6 @@
         padding: 15px;
         margin-bottom: 15px;
         border-radius: 4px;
-        background-color: #27273e;
         transition: all 0.3s ease;
         display: flex;
         justify-content: space-between;
@@ -145,10 +142,9 @@
       }
 
       .lap-item.highlight {
-        background-color: #20003a; /* Darker purple for highlighted laps */
+        background-color: #623e8b;
         transform: scale(1.02);
-        box-shadow: 0 2px 8px rgba(113, 0, 225, 0.4);
-        border-left: 4px solid #7100e1; /* Purple border for highlighted lap */
+        box-shadow: 0 2px 8px rgba(255, 213, 0, 0.3);
       }
 
       .driver-name {
@@ -161,13 +157,13 @@
       }
 
       .lap-time {
-        font-family: "Roboto Mono", "Courier New", monospace;
+        font-family: "Courier New", monospace;
         font-size: 24px;
         letter-spacing: 1px;
       }
 
       .no-laps {
-        color: #8a8a9b;
+        color: #9ca3af;
         font-style: italic;
         padding: 20px;
         text-align: center;
@@ -177,7 +173,7 @@
         margin-top: 40px;
         text-align: center;
         font-size: 14px;
-        color: #8a8a9b;
+        color: #6b7280;
       }
     </style>
   </head>
