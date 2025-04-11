@@ -511,20 +511,8 @@
           if (response.ok) {
             const drivers = await response.json();
 
-            // Prepare data for export
-            const exportData = {
-              track: currentTrack,
-              date: new Date().toISOString().split("T")[0],
-              drivers: {},
-            };
-
-            // Create an array for CSV data
-            const csvData = [];
-            // Add CSV header
-            csvData.push(["Position", "Driver", "Team", "Time", "Fastest"]);
-
-            // Create an array of all lap times for sorting
-            const allLaps = [];
+            // Create an array of fastest lap times for each driver
+            const fastestLaps = [];
 
             // Process drivers to include only fastest laps
             for (const [name, driver] of Object.entries(drivers)) {
@@ -536,97 +524,52 @@
                   return timeA - timeB;
                 });
 
-                // Store in exportData for JSON
-                exportData.drivers[name] = {
-                  team: driver.team,
-                  fastest_lap: sortedLaps[0].time,
-                  is_overall_fastest: sortedLaps[0].is_fastest,
-                };
-
-                // Add to allLaps array for CSV sorting
-                allLaps.push({
+                // Add to fastestLaps array
+                fastestLaps.push({
                   driver: name,
-                  team: driver.team,
                   time: sortedLaps[0].time,
-                  is_fastest: sortedLaps[0].is_fastest,
                 });
               }
             }
 
             // Sort all laps by time (fastest first)
-            allLaps.sort((a, b) => {
+            fastestLaps.sort((a, b) => {
               return parseTimeToSeconds(a.time) - parseTimeToSeconds(b.time);
             });
 
-            // Add sorted laps to CSV data
-            allLaps.forEach((lap, index) => {
-              csvData.push([
-                index + 1, // Position
-                lap.driver,
-                lap.team,
-                formatTime(lap.time),
-                lap.is_fastest ? "Yes" : "No",
-              ]);
+            // Define points mapping (position → points)
+            const pointsMapping = [
+              25, 18, 15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
+            ];
+
+            // Create CSV content with headers: Time, Driver, Points
+            let csvContent = "Time,Driver,Points\n";
+
+            // Add each driver's data with points based on position
+            fastestLaps.forEach((lap, index) => {
+              const position = index + 1;
+              const points =
+                position <= pointsMapping.length ? pointsMapping[index] : 0;
+              csvContent += `${formatTime(lap.time)},${lap.driver},${points}\n`;
             });
 
-            // Create CSV content
-            const csvContent = csvData.map((row) => row.join(",")).join("\n");
+            // Create download link for CSV
+            const blob = new Blob([csvContent], {
+              type: "text/csv;charset=utf-8;",
+            });
+            const url = URL.createObjectURL(blob);
+            const downloadAnchor = document.createElement("a");
+            downloadAnchor.setAttribute("href", url);
+            downloadAnchor.setAttribute(
+              "download",
+              `${currentTrack.replace(/\s+/g, "_")}_laptimes.csv`
+            );
+            downloadAnchor.style.display = "none";
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            document.body.removeChild(downloadAnchor);
 
-            // Create export buttons
-            const exportButtons = document.createElement("div");
-            exportButtons.style.marginTop = "10px";
-            exportButtons.innerHTML = `
-              <button id="downloadJson" class="secondary" style="margin-right: 10px;">Download JSON</button>
-              <button id="downloadCsv">Download CSV</button>
-            `;
-            statusElement.innerHTML = "";
-            statusElement.appendChild(exportButtons);
-
-            // JSON download handler
-            document
-              .getElementById("downloadJson")
-              .addEventListener("click", () => {
-                const dataStr =
-                  "data:text/json;charset=utf-8," +
-                  encodeURIComponent(JSON.stringify(exportData, null, 2));
-                const downloadAnchor = document.createElement("a");
-                downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute(
-                  "download",
-                  `${currentTrack.replace(/\s+/g, "_")}_laptimes.json`
-                );
-                downloadAnchor.style.display = "none";
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                downloadAnchor.remove();
-              });
-
-            // CSV download handler
-            document
-              .getElementById("downloadCsv")
-              .addEventListener("click", () => {
-                const encodedUri =
-                  "data:text/csv;charset=utf-8," +
-                  encodeURIComponent(csvContent);
-                const downloadAnchor = document.createElement("a");
-                downloadAnchor.setAttribute("href", encodedUri);
-                downloadAnchor.setAttribute(
-                  "download",
-                  `${currentTrack.replace(/\s+/g, "_")}_laptimes.csv`
-                );
-                downloadAnchor.style.display = "none";
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                downloadAnchor.remove();
-              });
-
-            showStatus(statusElement, "Export options ready", true);
-
-            // Add the buttons back after status message is shown
-            setTimeout(() => {
-              statusElement.innerHTML = "";
-              statusElement.appendChild(exportButtons);
-            }, 100);
+            showStatus(statusElement, "Lap times exported successfully", true);
           } else {
             showStatus(statusElement, "Failed to fetch data for export", false);
           }
